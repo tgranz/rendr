@@ -1,0 +1,45 @@
+footer {
+    background-color: #000;
+    padding: 4px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+footer p {
+    font-size: 0.8em;
+    color: var(--text-dark);
+}
+
+#message {
+    font-size: 0.8em;
+    color: var(--text-main);
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0px 12px;
+    border-radius: var(--radius);
+}
+
+#message.message-flash {
+    animation: message-flash 1s ease-out;
+}
+
+@keyframes message-flash {
+    0% {
+        box-shadow: 0 0 0 0 transparent;
+        filter: brightness(1);
+    }
+
+    20% {
+        box-shadow: 0 0 0 3px currentColor;
+        filter: brightness(1.35);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+        filter: brightness(1);
+    }
+}

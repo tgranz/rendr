@@ -1,0 +1,371 @@
+#bottom-shell {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    padding: 8px;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    background-color: var(--background-color-1);
+}
+
+#tracks-list-toolbar {
+    height: 50px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: 4px 8px;
+}
+
+#tracks-list-toolbar button {
+    background-color: transparent;
+    color: var(--text-main);
+    padding: 4px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.2s ease;
+}
+
+#tracks-list-toolbar button:hover {
+    background-color: var(--background-color-2);
+}
+
+#tracks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 20%;
+    max-width: 200px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.track-item {
+    padding: 4px 8px;
+    border-radius: var(--radius);
+}
+
+.track-item.video-track {
+    background-color: var(--video-track-color);
+}
+
+.track-item.audio-track {
+    background-color: var(--audio-track-color);
+}
+
+.track-label {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    font-size: 0.9em;
+    color: var(--text-dark);
+    font-weight: bolder;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.track-label:hover {
+    color: var(--text-main);
+}
+
+.track-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.track-actions button {
+    background-color: transparent;
+    color: var(--text-main);
+    font-size: 1em;
+    padding: 2px 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.track-actions button:hover {
+    background-color: var(--background-color-3);
+}
+
+#timeline-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#timeline-toolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+#timeline-toolbar button {
+    background-color: transparent;
+    color: var(--text-main);
+    padding: 4px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    transition: background-color 0.2s ease;
+}
+
+#timeline-toolbar button:hover {
+    background-color: var(--background-color-2);
+}
+
+#timeline-toolbar button.selected {
+    background-color: var(--video-track-color) !important;
+}
+
+#timeline-toolbar .spacer {
+    width: 2px;
+    margin: 0 4px;
+    background-color: var(--text-darker);
+    height: 20px;
+    border-radius: var(--radius);
+}
+
+#timeline-toolbar .spacer-fill {
+    width: 100%;
+    background: none;
+}
+
+#audio-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    width: 300px;
+}
+
+.meter-bar {
+    width: 100%;
+    height: 10px;
+    background-color: var(--background-color-2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+}
+
+.meter-level {
+    width: 0%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.meter-peak {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    transform: translateX(-1px);
+    border-radius: var(--radius);
+    background-color: var(--good-color);
+    pointer-events: none;
+}
+
+#timeline-ruler {
+    position: sticky;
+    top: 0;
+    left: 0;
+    height: 20px;
+    flex: 0 0 20px;
+    background-color: var(--background-color-2);
+    z-index: 12;
+    /* width is unconstrained — sticky keeps it anchored to the visible viewport area */
+}
+
+#timeline-playhead {
+    position: absolute;
+    top: 10px;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 12px solid var(--playhead-color);
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 13;
+}
+
+#timeline {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+#timeline-cursor {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background-color: var(--quaternary-color);
+    pointer-events: none;
+    z-index: 10;
+}
+
+#timeline-playbar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    background-color: var(--playhead-color);
+    pointer-events: none;
+    z-index: 9;
+}
+
+.track-row {
+    display: block;
+    position: relative;
+    height: 60px;
+    min-width: 100%;
+    margin-bottom: 4px;
+    background-color: #000;
+}
+
+.clip-item {
+    border: 1px solid var(--text-darker);
+    border-radius: calc(var(--radius) / 2);
+    flex: 0 0 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: grab;
+    user-select: none;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+
+.clip-item.is-dragging {
+    cursor: grabbing;
+    filter: brightness(1.15);
+}
+
+.clip-item .clip-thumbnail {
+    width: auto;
+    height: 52px;
+    margin: 4px;
+    border-radius: var(--radius);
+    pointer-events: none;
+}
+
+.clip-item .clip-details {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 4px 4px 0;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.clip-item .clip-name {
+    font-size: 0.8em;
+    color: var(--text-main);
+    padding: 2px 4px;
+    pointer-events: none;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 2px #000;
+}
+
+.clip-item .clip-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 2px;
+}
+
+.clip-item .clip-actions button {
+    background-color: transparent;
+    color: var(--text-main);
+    padding: 2px 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+}
+
+.clip-item .clip-actions button:hover {
+    background-color: var(--background-color-3);
+}
+
+.clip-item.audio-clip-item {
+    display: flex;
+    align-items: flex-start;
+}
+
+.clip-item .clip-waveform {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
+    bottom: 4px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    opacity: 0.75;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.clip-handle {
+    width: 6px;
+    height: 100%;
+    background-color: transparent;
+    position: absolute;
+    top: 0;
+    z-index: 2;
+    transition: 0.2s ease;
+    touch-action: none;
+}
+
+.clip-handle:hover {
+    background-color: var(--quaternary-color);
+    opacity: 0.7;
+}
+
+.start-handle {
+    left: 0;
+    cursor: w-resize;
+}
+
+.end-handle {
+    right: 0;
+    cursor: e-resize;
+}

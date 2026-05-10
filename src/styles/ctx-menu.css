@@ -1,0 +1,96 @@
+.ctx-menu {
+    position: fixed;
+    z-index: 5000;
+    min-width: 180px;
+    max-width: 320px;
+    background-color: var(--background-color-1);
+    border: 1px solid var(--background-color-3);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px #00000066;
+    padding: 4px;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+    transform-origin: top left;
+    pointer-events: none;
+    transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.ctx-menu.ctx-menu--open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.ctx-menu.ctx-menu--closing {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+    pointer-events: none;
+}
+
+.ctx-menu__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ctx-menu__item {
+    width: 100%;
+}
+
+.ctx-menu__button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background-color: transparent;
+    border-radius: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.16s ease;
+}
+
+.ctx-menu__button:hover {
+    background-color: var(--background-color-2);
+}
+
+.ctx-menu__button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ctx-menu__left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.ctx-menu__icon {
+    font-size: 1em;
+    color: var(--text-dark);
+}
+
+.ctx-menu__label {
+    color: var(--text-main);
+    white-space: nowrap;
+}
+
+.ctx-menu__shortcut {
+    color: var(--text-darker);
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+.ctx-menu__button--danger .ctx-menu__label,
+.ctx-menu__button--danger .ctx-menu__icon {
+    color: var(--bad-color);
+}
+
+.ctx-menu__separator {
+    height: 1px;
+    margin: 4px;
+    background-color: var(--background-color-3);
+}

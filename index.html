@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Meta tags-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rendr | New Project</title>
+
+    <!--OG Tags-->
+    <meta property="og:title" content="Rendr: FOSS Web-based Video Editor">
+    <meta property="og:description" content="Rendr is a free and open source web based video editor designed for speed and simplicity. Runs on your device only; your videos are uploaded nowhere.">
+    <meta property="og:type" content="website">
+    <!--<meta property="og:url" content="https://example.com">
+    <meta property="og:image" content="https://example.com/image.jpg">-->
+
+    <!--Icons and font-->
+    <link rel="icon" href="/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.35.0/dist/tabler-icons.min.css" />
+
+    <!--Stylesheet-->
+    <link rel="stylesheet" href="src/styles/main.css">
+</head>
+<body>
+    <main>
+        <header>
+            <div class="menubar">
+                <button class="app-title" id="menu-app">Rendr</button>
+                <button id="menu-file">File</button>
+                <button id="menu-edit">Edit</button>
+                <button id="menu-view">View</button>
+                <button id="menu-help">Help</button>
+            </div>
+            <div class="menubar" id="secondary-menubar">
+                <button id="shortcut-import"><i class="ti ti-upload"></i> Import Media</button>
+                <!--<button id="shortcut-upload"><i class="ti ti-file-upload"></i> Upload Project</button>-->
+                <!--<button id="shortcut-save"><i class="ti ti-device-floppy"></i> Save Project</button>-->
+            </div>
+            <div id="progress" style="display: none;">
+                <span id="progress-label" class="mono">No tasks</span>
+            </div>
+        </header>
+
+
+        <div id="top-shell">
+            <div class="panel" id="panel-1">
+                <div class="panel-head">
+                    <button class="panel-selection">
+                        <i class="ti ti-chevron-down"></i>
+                        <span class="panel-title">Project Bin</span>
+                    </button>
+                    <div class="panel-actions"></div>
+                </div>
+                <div class="panel-content"></div>
+            </div>
+
+            <div id="resizer-panel-1" class="panel-resizer"></div>
+
+            <div class="panel" id="panel-2">
+                <div class="panel-head">
+                    <button class="panel-selection">
+                        <i class="ti ti-chevron-down"></i>
+                        <span class="panel-title">Clip Properties</span>
+                    </button>
+                    <div class="panel-actions"></div>
+                </div>
+                <div class="panel-content"></div>
+            </div>
+
+            <div id="resizer-panel-2" class="panel-resizer"></div>
+
+            <div class="panel" id="panel-3" style="width: 400px;">
+                <div class="panel-head">
+                    <button class="panel-selection">
+                        <i class="ti ti-chevron-down"></i>
+                        <span class="panel-title">Preview</span>
+                    </button>
+                    <div class="panel-actions"></div>
+                </div>
+                <div class="panel-content"></div>
+            </div>
+        </div>
+
+        <div id="resizer-shells"></div>
+
+        <div id="bottom-shell">
+            <div id="tracks-list">
+                <div id="tracks-list-toolbar"></div>
+
+                <div class="track-item video-track">
+                    <span class="track-label">Video 1</span>
+                    <div class="track-actions">
+                        <button><i class="ti ti-trash"></i></button>
+                        <button><i class="ti ti-eye"></i></button>
+                        <button><i class="ti ti-lock"></i></button>
+                    </div>
+                </div>
+
+                <div class="track-item audio-track">
+                    <span class="track-label">Audio 1</span>
+                    <div class="track-actions">
+                        <button><i class="ti ti-trash"></i></button>
+                        <button><i class="ti ti-volume"></i></button>
+                        <button><i class="ti ti-lock"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div id="timeline-wrapper">
+                <div id="timeline-toolbar"></div>
+
+                <div id="timeline">
+                    <div id="timeline-ruler"></div>
+                    <div id="timeline-cursor"></div>
+                    <div id="timeline-playbar"></div>
+                    <div id="timeline-playhead"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <footer>
+            <p id="rendr-version" class="mono">Rendr v0.2.0 alpha</p>
+            <div id="message" class="mono"></div>
+        </footer>
+    </main>
+
+    <div id="settings-wrapper" style="display: none;">
+        <div id="settings-modal">
+            <div id="settings-header">
+                <h2>Settings</h2>
+                <button id="settings-close"><i class="ti ti-x"></i></button>
+            </div>
+            <div id="settings-content">
+                <div id="settings-category-list">
+                    <button class="settings-category active" id="category-general">General</button>
+                    <button class="settings-category" id="category-audio">Audio</button>
+                </div>
+                <div id="settings-list-wrapper">
+                    <div class="settings-list" id="settings-general">
+                        <div class="setting-item">
+                            <label for="setting-theme">Theme</label>
+                            <select id="setting-theme">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-list" id="settings-audio">
+                        <h2 class="settings-list-title">Audio Meter</h2>
+                        <div class="setting-item">
+                            <label for="setting-audio-sampling-rate">Sampling Rate</label>
+                            <div class="range-control">
+                                <input type="range" id="setting-audio-sampling-rate" min="1" max="100" value="50">
+                                <span class="range-value" id="setting-audio-sampling-rate-value">50 Hz</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label for="setting-audio-peak-hold">Peak Hold</label>
+                            <div class="range-control">
+                                <input type="range" id="setting-audio-peak-hold" min="0" max="2000" step="10" value="120">
+                                <span class="range-value" id="setting-audio-peak-hold-value">120 ms</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label for="setting-audio-peak-decay">Peak Decay</label>
+                            <div class="range-control">
+                                <input type="range" id="setting-audio-peak-decay" min="1" max="96" value="12">
+                                <span class="range-value" id="setting-audio-peak-decay-value">12 dB/s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script type="module" src="/src/entry.js"></script>
+</html>

@@ -1,0 +1,149 @@
+/* Import other stylesheets into this one, this way we only need to import one in HTML */
+@import "header.css";
+@import "ctx-menu.css";
+@import "top-shell.css";
+@import "panels.css";
+@import "timeline.css";
+@import "footer.css";
+@import "modal.css";
+@import "settings.css";
+
+
+
+/* Root defines CSS variables for custom theming later */
+:root {
+    /* App colors */
+    --primary-color: #c00000;
+    --secondary-color: #007acb;
+    --tertiary-color: #008c00;
+    --quaternary-color: #c00093;
+    --good-color: #008c00;
+    --yellow-color: #c0c000;
+    --bad-color: #c00000;
+    --good-color-translucent: #008c0044;
+    --yellow-color-translucent: #c0c00044;
+    --bad-color-translucent: #c0000044;
+    --danger-color: #c00093;
+
+    /* Text colors */
+    --background-color-1: #202020;
+    --background-color-2: #303030;
+    --background-color-3: #404040;
+    --text-main: #dedede;
+    --text-dark: #a0a0a0;
+    --text-darker: #707070;
+
+    /* Timeline colors */
+    --playhead-color: #c00000;
+    --video-track-color: #007acb33;
+    --audio-track-color: #008c0033;
+    --video-color: #007acb;
+    --audio-color: #008c00;
+
+    /* Other */
+    --radius: 10px;
+}
+
+
+
+/* Global styles */
+body {
+    background-color: #000;
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+main {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+* {
+    box-sizing: border-box;
+    border: none;
+    margin: 0;
+    padding: 0;
+    color: var(--text-main);
+    font-family: "Nunito", 'Segoe UI', sans-serif;
+    user-select: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bolder;
+}
+
+p {
+    font-size: 0.9em;
+}
+
+
+
+/* Global scrollbar styling */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--background-color-3) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--background-color-3);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: #5a5a5a;
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+
+
+/* Global classes */
+.mono {
+    font-family: monospace, "Courier New", Courier !important;
+}
+
+
+
+/* Resizers */
+#resizer-shells {
+    height: 8px;
+    background-color: var(--background-color-2);
+    cursor: row-resize;
+    width: 100%;
+    border-radius: 4px;
+}
+
+#resizer-shells:hover {
+    background-color: var(--background-color-3);
+}
+
+.panel-resizer {
+    width: 8px;
+    background-color: var(--background-color-2);
+    cursor: col-resize;
+    border-radius: 4px;
+}
+
+.panel-resizer:hover {
+    background-color: var(--background-color-3);
+}

@@ -1,0 +1,24 @@
+{
+  "name": "rendr",
+  "version": "0.1.0",
+  "description": "Rendr is a FOSS video editor built on the web",
+  "homepage": "https://github.com/tgranz/rendr#readme",
+  "bugs": {
+    "url": "https://github.com/tgranz/rendr/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tgranz/rendr.git"
+  },
+  "license": "ISC",
+  "author": "tgranz",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "mediainfo.js": "^0.3.7",
+    "vite": "^8.0.11"
+  }
+}
