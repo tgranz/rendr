@@ -4,6 +4,8 @@
 
 **Rendr** is a free and open source web-based video editor good for beginners and less capable hardware.
 
+![](https://raw.githubusercontent.com/tgranz/rendr/refs/heads/main/public/screenshots/ui-0.2.0.png)
+
 It not only looks good but also features GPU-accelerated timeline previewing through WebGL and easily manages to not drop any frames even on older hardware. This is not very common among desktop video editors, including Davinci Resolve (free version), Kdenlive, and others.
 
 *Rendr does not have a domain yet (but I will get one before a stable release). You can preview alpha builds at https://tgranz.github.io/rendr/*
