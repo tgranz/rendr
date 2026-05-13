@@ -134,8 +134,12 @@
     transition: background 100ms;
 }
 
-.setting-item:hover {
-    background-color: var(--background-color-2);
+.setting-help {
+    font-size: 0.75rem;
+    color: var(--text-dark);
+    margin-top: 4px;
+    padding: 10px 14px;
+    padding-top: 0;
 }
 
 .setting-item label {

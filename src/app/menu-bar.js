@@ -38,9 +38,8 @@ export default function bindCtxMenusToMenuOptions() {
     const view = document.getElementById('menu-view')
     view.addEventListener('click', (event) => {
         const menu = new CtxMenu(view, [
-                { label: 'Zoom In', iconClass: 'ti ti-zoom-in' },
-                { label: 'Zoom Out', iconClass: 'ti ti-zoom-out' },
-                { label: 'Reset Zoom', iconClass: 'ti ti-zoom-reset' },
+                { label: 'Zoom In', iconClass: 'ti ti-zoom-in', onClick: () => window.timelineUI.zoomIn() },
+                { label: 'Zoom Out', iconClass: 'ti ti-zoom-out', onClick: () => window.timelineUI.zoomOut() },
             ],
         );
     });

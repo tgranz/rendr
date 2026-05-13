@@ -18,52 +18,45 @@ class ProjectBin {
         uploadElement.addEventListener('change', () => {
             const file = uploadElement.files && uploadElement.files[0];
             if (file) {
-                // Name is used as an ID, ensure this file does not share a name with an existing clip
-                if (this.project.some(clip => clip.name === file.name)) {
-                    alert(`A clip named "${file.name}" already exists in the project. Please rename the file and try again.`);
-                    uploadElement.remove();
-                    return;
-                }
-                
-                // Create a local URL for the selected file
-                const fileURL = URL.createObjectURL(file);
-                
-                // Add the clip to the project bin
-                this.project.push({
-                    type: 'video',
-                    name: file.name,
-                    url: fileURL,
-                    file
-                });
-
-                // And generate a thumbnail, offset 5 seconds
-                this.getThumbnail(file.name, 5).then(thumbnailSrc => {
-                    let clip = this.project.find(c => c.name === file.name);
-                    if (clip) {
-                        clip.thumbnail = thumbnailSrc;
-                    }
-
-                    // Lastly get media info
-                    this.clipMediaInfo.getClipProperties(clip.file || clip).then(properties => {
-                        clip.properties = properties;
-
-                        // Now trigger a re-render of project bin(s)
-                        window.panels.reRender('Project Bin');
-                    }).catch(error => {
-                        console.error(`Failed to get media info for ${file.name}:`, error);
-                    });
-                }).catch(error => {
-                    console.error(`Failed to generate thumbnail for ${file.name}:`, error);
-                    
-                    // Trigger re-render even though we don't have a thumbnail
-                    window.panels.reRender('Project Bin');
-                });
+                this.addVideoFile(file);
             }
-
             uploadElement.remove();
         });
-
         uploadElement.click();
+    }
+
+    // Function to add a video file directly (e.g. from drag-and-drop)
+    addVideoFile(file) {
+        if (this.project.some(clip => clip.name === file.name)) {
+            alert(`A clip named "${file.name}" already exists in the project. Please rename the file and try again.`);
+            return;
+        }
+
+        const fileURL = URL.createObjectURL(file);
+
+        this.project.push({
+            type: 'video',
+            name: file.name,
+            url: fileURL,
+            file
+        });
+
+        this.getThumbnail(file.name, 5).then(thumbnailSrc => {
+            let clip = this.project.find(c => c.name === file.name);
+            if (clip) {
+                clip.thumbnail = thumbnailSrc;
+            }
+
+            this.clipMediaInfo.getClipProperties(clip.file || clip).then(properties => {
+                clip.properties = properties;
+                window.panels.reRender('Project Bin');
+            }).catch(error => {
+                console.error(`Failed to get media info for ${file.name}:`, error);
+            });
+        }).catch(error => {
+            console.error(`Failed to generate thumbnail for ${file.name}:`, error);
+            window.panels.reRender('Project Bin');
+        });
     }
 
     // Function to retrieve the list of clips in the project

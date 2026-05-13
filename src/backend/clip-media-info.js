@@ -2,7 +2,9 @@ import mediaInfoFactory from 'mediainfo.js';
 
 class ClipMediaInfo {
     constructor(options = {}) {
-        this.wasmUrl = options.wasmUrl || '/MediaInfoModule.wasm';
+        const baseUrl = import.meta.env.BASE_URL || '/';
+        const defaultWasmUrl = `${baseUrl}MediaInfoModule.wasm`;
+        this.wasmUrl = options.wasmUrl || defaultWasmUrl;
         this.chunkSize = options.chunkSize || 1024 * 1024;
         this.mediaInfoPromise = null;
     }

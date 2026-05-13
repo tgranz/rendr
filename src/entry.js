@@ -17,24 +17,31 @@ import initResizers from './app/resizers.js';
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Bind the file/edit/view menus to the menu buttons
-    bindCtxMenusToMenuOptions();
     // Start the project bin manager
     window.projectBin = new ProjectBin();
     // Start the composer engine
     window.composer = new Compose();
     // Start the audio engine
     window.audioEngine = new AudioEngine();
-    // Start the panel manager
-    window.panels = new Panels();
     // Start the timeline UI
     window.timelineUI = new TimelineUI();
+    // Start the panel manager
+    window.panels = new Panels();
     // Start the settings manager
     window.settings = new SettingsManager();
+
+    // Bind the file/edit/view menus to the menu buttons
+    bindCtxMenusToMenuOptions();
 
     // Bind hotkeys
     bindHotkeyToCallback('Space', () => {
         window.timelineUI.togglePlayback();
+    });
+    bindHotkeyToCallback('=', () => {
+        window.timelineUI.zoomIn();
+    });
+    bindHotkeyToCallback('-', () => {
+        window.timelineUI.zoomOut();
     });
 
     // Initialize resizers

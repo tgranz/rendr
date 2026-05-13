@@ -21,6 +21,7 @@ class TimelineUI {
         this.rafLoopActive = false;
         this.playbackStartWallclockMs = 0;
         this.playbackStartSeconds = 0;
+        this.timecodeHooks = [];
 
         this.handleTimelinePointerMove = event => {
             const rect = this.timelineElement.getBoundingClientRect();
@@ -71,10 +72,19 @@ class TimelineUI {
             ><i class="ti ti-magnet"></i></button>
             <div class="spacer"></div>
             <button
+                title="Zoom in"
+                onClick="window.timelineUI.zoomIn()"
+            ><i class="ti ti-zoom-in"></i></button>
+            <button
+                title="Zoom out"
+                id="timeline-zoom-out-button"
+                onClick="window.timelineUI.zoomOut()"
+            ><i class="ti ti-zoom-out"></i></button>
+            <div class="spacer"></div>
+            <button
                 title="More options"
                 id="timeline-more-options"
             ><i class="ti ti-dots"></i></button>
-            <button><i class="ti ti-help"></i></button>
             <div class="spacer-fill"></div>
             <div id="audio-meter"></div>
         `;
@@ -102,13 +112,13 @@ class TimelineUI {
         timelineRuler.addEventListener('mousemove', event => {
             if (event.buttons === 1) {
                 const rect = timelineRuler.getBoundingClientRect();
-                const x = Math.max(0, (event.clientX - rect.left) + this.timelineElement.scrollLeft);
+                const x = Math.max(0, (event.clientX - rect.left));
                 this.setPlayPosition(x / this.pixelsPerSecond);
             }
         });
         timelineRuler.addEventListener('click', event => {
             const rect = timelineRuler.getBoundingClientRect();
-            const x = Math.max(0, (event.clientX - rect.left) + this.timelineElement.scrollLeft);
+            const x = Math.max(0, (event.clientX - rect.left));
             this.setPlayPosition(x / this.pixelsPerSecond);
         });
 
@@ -563,6 +573,32 @@ class TimelineUI {
             const trackActions = document.createElement('div');
             trackActions.className = 'track-actions';
 
+                if (track.getType() === 'audio') {
+                    const soloButton = document.createElement('button');
+                    soloButton.innerHTML = 'S';
+                    soloButton.style.cssText = 'font-weight: bold; font-size: 0.9em;';
+                    soloButton.addEventListener('click', () => {
+                        track.solo = !track.solo;
+                        soloButton.classList.toggle('active', track.solo);
+                        this.renderTimeline();
+                    });
+                    trackActions.appendChild(soloButton);
+
+                    const muteButton = document.createElement('button');
+                    muteButton.innerHTML = 'M';
+                    muteButton.style.cssText = 'font-weight: bold; font-size: 0.9em;';
+                    muteButton.addEventListener('click', () => {
+                        track.mute = !track.mute;
+                        muteButton.classList.toggle('active', track.mute);
+                        this.renderTimeline();
+                    });
+                    trackActions.appendChild(muteButton);
+                } else if (track.getType() === 'video') {
+                    const visibilityButton = document.createElement('button');
+                    visibilityButton.innerHTML = '<i class="ti ti-eye"></i>';
+                    trackActions.appendChild(visibilityButton);
+                }
+
                 const deleteButton = document.createElement('button');
                 deleteButton.innerHTML = '<i class="ti ti-trash"></i>';
                 deleteButton.addEventListener('click', () => {
@@ -594,6 +630,33 @@ class TimelineUI {
             Math.ceil(this.getTimelineEndPosition() * this.pixelsPerSecond)
         );
 
+        // Render ruler increments
+        const timelineRuler = document.getElementById('timeline-ruler');
+        timelineRuler.querySelectorAll('.ruler-tick').forEach(el => el.remove());
+        timelineRuler.style.width = `${timelineWidthPx}px`;
+
+        const totalSeconds = Math.ceil(timelineWidthPx / this.pixelsPerSecond) + 1;
+
+        // Pick a sensible tick interval based on zoom level
+        const minPxBetweenTicks = 60;
+        const candidateIntervals = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300];
+        const tickInterval = candidateIntervals.find(s => s * this.pixelsPerSecond >= minPxBetweenTicks) ?? 300;
+
+        for (let t = 0; t <= totalSeconds; t += tickInterval) {
+            const x = t * this.pixelsPerSecond;
+            const tick = document.createElement('div');
+            tick.className = 'ruler-tick';
+            tick.style.left = `${x}px`;
+
+            const mins = Math.floor(t / 60);
+            const secs = t % 60;
+            tick.dataset.label = mins > 0
+                ? `${mins}:${String(secs.toFixed(secs % 1 === 0 ? 0 : 2)).padStart(2, '0')}`
+                : `${secs % 1 === 0 ? secs : secs.toFixed(2)}s`;
+
+            timelineRuler.appendChild(tick);
+        }
+
         // Sort tracks, video first then audio
         const sortedTracks = [...this.tracks].sort((a, b) => {
             if (a.getType() === b.getType()) {
@@ -608,6 +671,30 @@ class TimelineUI {
             trackRow.className = `track-row`;
             trackRow.dataset.trackIndex = String(this.tracks.indexOf(track));
             this.timelineElement.appendChild(trackRow);
+
+            // Drop target for clips dragged from the project bin
+            trackRow.addEventListener('dragover', (e) => {
+                if (e.dataTransfer.types.includes('application/x-rendr-clip')) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                    trackRow.classList.add('drag-over');
+                }
+            });
+            trackRow.addEventListener('dragleave', (e) => {
+                if (!trackRow.contains(e.relatedTarget)) {
+                    trackRow.classList.remove('drag-over');
+                }
+            });
+            trackRow.addEventListener('drop', (e) => {
+                e.preventDefault();
+                trackRow.classList.remove('drag-over');
+                const clipName = e.dataTransfer.getData('application/x-rendr-clip');
+                if (!clipName) return;
+                const rect = trackRow.getBoundingClientRect();
+                const dropX = e.clientX - rect.left + this.timelineElement.scrollLeft;
+                const dropSeconds = Math.max(0, dropX / this.pixelsPerSecond);
+                void this.addCombinedClipAtPosition(clipName, dropSeconds);
+            });
 
             // Track row height must equal the height of the track item in the track list for proper alignment
             trackRow.style.height = `${this.tracksListElement.querySelector('.track-item').offsetHeight}px`;
@@ -728,6 +815,40 @@ class TimelineUI {
         }
     }
 
+    async addCombinedClipAtPosition(clipName, positionSeconds = 0, trackIndex = 0) {
+        const clip = window.projectBin.getClips().find(c => c.name === clipName);
+        if (!clip) {
+            window.setMessage(`Clip "${clipName}" not found in project bin.`, 'alert-triangle', '#ff8800', 4000);
+            return;
+        }
+
+        const videoTracks = this.getVideoTracks();
+        const audioTracks = this.getAudioTracks();
+        if (videoTracks.length === 0 || audioTracks.length === 0) {
+            window.setMessage('Need at least one video and one audio track.', 'alert-triangle', '#ff8800', 4000);
+            return;
+        }
+
+        const videoTrack = videoTracks[trackIndex] ?? videoTracks[0];
+        const audioTrack = audioTracks[trackIndex] ?? audioTracks[0];
+        const videoTimelineClip = await videoTrack.addClipToTrack(clip, positionSeconds);
+        const audioTimelineClip = await audioTrack.addClipToTrack(clip, positionSeconds);
+
+        this.linkClips(videoTimelineClip, audioTimelineClip);
+
+        if (videoTimelineClip && audioTimelineClip) {
+            audioTimelineClip.start = videoTimelineClip.start;
+            audioTimelineClip.position = videoTimelineClip.position;
+            audioTimelineClip.duration = videoTimelineClip.duration;
+        }
+
+        this.renderTimeline();
+
+        if (window.audioEngine) {
+            window.audioEngine.warmClipCache(clip);
+        }
+    }
+
     async addCombinedClipToTimeline(clipName, trackIndex = 0) {
         const clip = window.projectBin.getClips().find(c => c.name === clipName);
         if (!clip) {
@@ -795,10 +916,46 @@ class TimelineUI {
         return playbarX / this.pixelsPerSecond;
     }
 
+    addTimecodeHook(hookItem) {
+        if (!hookItem || this.timecodeHooks.includes(hookItem)) return;
+        this.timecodeHooks.push(hookItem);
+    }
+
+    removeTimecodeHook(hookItem) {
+        this.timecodeHooks = this.timecodeHooks.filter(h => h !== hookItem);
+    }
+
+    emitTimecode(seconds) {
+        if (this.timecodeHooks.length === 0) return;
+        const fps = (window.composer?.targetFps) || 24;
+        const totalFrames = Math.floor(seconds * fps);
+        const ff = totalFrames % fps;
+        const totalSecs = Math.floor(seconds);
+        const ss = totalSecs % 60;
+        const totalMins = Math.floor(totalSecs / 60);
+        const mm = totalMins % 60;
+        const hh = Math.floor(totalMins / 60);
+        const pad = n => String(n).padStart(2, '0');
+        const timecode = hh > 0
+            ? `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff)}`
+            : `${pad(mm)}:${pad(ss)}:${pad(ff)}`;
+
+        this.timecodeHooks = this.timecodeHooks.filter(hookItem => {
+            const isAlive = typeof hookItem.isAlive === 'function'
+                ? hookItem.isAlive()
+                : !(hookItem.element && !hookItem.element.isConnected);
+            if (!isAlive) return false;
+            try { hookItem.updateTimecode(timecode); } catch (e) { console.warn('Timecode hook error', e); }
+            return true;
+        });
+    }
+
     setPlayPosition(seconds) {
         const x = Math.max(0, seconds * this.pixelsPerSecond);
         this.timelinePlaybar.style.left = `${x}px`;
         this.timelinePlayhead.style.left = `${x + 1}px`;
+
+        this.emitTimecode(seconds);
 
         // Play position changed. Re-render the preview.
         window.composer.drawCurrentFrame();
@@ -913,6 +1070,16 @@ class TimelineUI {
         } else {
             void this.startPlayback();
         }
+    }
+
+    zoomIn() {
+        this.pixelsPerSecond = Math.min(this.pixelsPerSecond * 1.25, 1000);
+        this.renderTimeline();
+    }
+
+    zoomOut() {
+        this.pixelsPerSecond = Math.max(this.pixelsPerSecond / 1.25, 1);
+        this.renderTimeline();
     }
 }
 

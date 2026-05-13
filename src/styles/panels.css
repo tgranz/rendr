@@ -1,4 +1,48 @@
 /* Project Bin */
+.panel-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border-radius: var(--radius);
+    box-sizing: border-box;
+    color: var(--text-secondary, #888);
+}
+
+.project-bin-drop-zone {
+    border: 2px dashed transparent;
+    border-radius: var(--radius);
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    cursor: default;
+    user-select: none;
+}
+
+.panel-icon {
+    font-size: 2.5em;
+    opacity: 0.4;
+}
+
+.panel-empty p {
+    font-size: 0.9em;
+    opacity: 0.5;
+    text-align: center;
+    padding: 0 16px;
+}
+
+.project-bin-drop-zone.drag-over {
+    border-color: var(--accent-color, #4a9eff);
+    background-color: var(--accent-color-translucent, rgba(74, 158, 255, 0.08));
+}
+
+.project-bin-drop-zone.drag-over i,
+.project-bin-drop-zone.drag-over p {
+    opacity: 0.8;
+}
+
 ul.project-bin-list {
     list-style: none;
     display: flex;
@@ -169,10 +213,17 @@ ul.project-bin-list li .clip-actions button:hover {
     padding: 0 4px;
 }
 
+.preview-canvas-wrapper {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+}
+
 canvas.preview-canvas {
     display: block;
     width: 100%;
-    flex: 1 1 auto;
     min-height: 0;
     min-width: 0;
 }
@@ -192,10 +243,23 @@ canvas.preview-canvas {
 }
 
 .fps {
+    position: absolute;
+    top: 6px;
+    left: 6px;
     font-size: 0.8em;
     margin: 0;
     font-weight: bold;
     padding: 4px 8px;
     background-color: var(--background-color-2);
     border-radius: var(--radius);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.timecode {
+    padding: 4px 8px;
+    background: #000;
+    border-radius: var(--radius);
+    margin: 4px;
+    margin-right: 0px;
 }

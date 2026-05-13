@@ -191,12 +191,31 @@
 #timeline-ruler {
     position: sticky;
     top: 0;
-    left: 0;
     height: 20px;
     flex: 0 0 20px;
     background-color: var(--background-color-2);
     z-index: 12;
-    /* width is unconstrained — sticky keeps it anchored to the visible viewport area */
+    min-width: 100%;
+}
+
+.ruler-tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--text-darker, #444);
+    pointer-events: none;
+}
+
+.ruler-tick::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    font-size: 10px;
+    color: var(--text-secondary, #888);
+    white-space: nowrap;
+    user-select: none;
 }
 
 #timeline-playhead {
@@ -251,6 +270,12 @@
     min-width: 100%;
     margin-bottom: 4px;
     background-color: #000;
+}
+
+.track-row.drag-over {
+    outline: 2px dashed var(--accent-color, #4a9eff);
+    outline-offset: -2px;
+    background-color: rgba(74, 158, 255, 0.06);
 }
 
 .clip-item {

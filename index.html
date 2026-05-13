@@ -10,8 +10,8 @@
     <meta property="og:title" content="Rendr: FOSS Web-based Video Editor">
     <meta property="og:description" content="Rendr is a free and open source web based video editor designed for speed and simplicity. Runs on your device only; your videos are uploaded nowhere.">
     <meta property="og:type" content="website">
-    <!--<meta property="og:url" content="https://example.com">
-    <meta property="og:image" content="https://example.com/image.jpg">-->
+    <meta property="og:url" content="https://tgranz.github.io/rendr/">
+    <!--<meta property="og:image" content="https://example.com/image.jpg">-->
 
     <!--Icons and font-->
     <link rel="icon" href="/favicon.ico">
@@ -121,7 +121,7 @@
 
 
         <footer>
-            <p id="rendr-version" class="mono">Rendr v0.2.0 alpha</p>
+            <p id="rendr-version" class="mono">Rendr v0.2.1 alpha</p>
             <div id="message" class="mono"></div>
         </footer>
     </main>
@@ -139,13 +139,6 @@
                 </div>
                 <div id="settings-list-wrapper">
                     <div class="settings-list" id="settings-general">
-                        <div class="setting-item">
-                            <label for="setting-theme">Theme</label>
-                            <select id="setting-theme">
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
-                            </select>
-                        </div>
                     </div>
                     <div class="settings-list" id="settings-audio">
                         <h2 class="settings-list-title">Audio Meter</h2>
@@ -156,6 +149,7 @@
                                 <span class="range-value" id="setting-audio-sampling-rate-value">50 Hz</span>
                             </div>
                         </div>
+                        <p class="setting-help">Audio is sampled this often to update the audio meter display.</p>
                         <div class="setting-item">
                             <label for="setting-audio-peak-hold">Peak Hold</label>
                             <div class="range-control">
@@ -163,6 +157,7 @@
                                 <span class="range-value" id="setting-audio-peak-hold-value">120 ms</span>
                             </div>
                         </div>
+                        <p class="setting-help">The peak bar is held at its peak value for this duration before starting to decay.</p>
                         <div class="setting-item">
                             <label for="setting-audio-peak-decay">Peak Decay</label>
                             <div class="range-control">
@@ -170,6 +165,7 @@
                                 <span class="range-value" id="setting-audio-peak-decay-value">12 dB/s</span>
                             </div>
                         </div>
+                        <p class="setting-help">The peak bar decays at this rate after the peak hold duration.</p>
                     </div>
                 </div>
             </div>

@@ -5,7 +5,7 @@ class Compose {
         this.previews = [];
         this.isDrawing = false;
         this.videoCache = new Map();
-        this.targetFps = 24;
+        this.targetFps = 60;
         this.seekToleranceSeconds = 1 / this.targetFps;
         this.playbackSeekDriftToleranceSeconds = 0.12;
         this.maxPreviewDpr = 1;
@@ -294,7 +294,11 @@ class Compose {
     resizeCanvasToDisplaySize(canvas, quality = this.drawQuality) {
         const normalizedQuality = this.normalizeDrawQuality(quality);
         const qualityScale = 0.3 + ((normalizedQuality - 1) / 8) * 0.7;
-        const dpr = Math.min(window.devicePixelRatio || 1, this.maxPreviewDpr) * qualityScale;
+        const deviceDpr = window.devicePixelRatio || 1;
+        // At max quality use full device DPR; otherwise cap at maxPreviewDpr and scale down.
+        const dpr = normalizedQuality === 9
+            ? deviceDpr
+            : Math.min(deviceDpr, this.maxPreviewDpr) * qualityScale;
         const rect = canvas.getBoundingClientRect();
         const targetWidth = Math.max(1, Math.floor(rect.width * dpr));
         const targetHeight = Math.max(1, Math.floor(rect.height * dpr));

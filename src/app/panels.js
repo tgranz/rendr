@@ -67,7 +67,31 @@ class Panels {
                 const projectClips = window.projectBin.getClips();
 
                 if (projectClips.length === 0) {
-                    panelContentElement.innerHTML = `<p>Click the + button to add media to your project.</p>`;
+                    panelContentElement.innerHTML = `
+                        <div class="project-bin-drop-zone panel-empty">
+                            <i class="ti ti-file-import panel-icon"></i>
+                            <p>Drop media here or click + to import</p>
+                        </div>
+                    `;
+
+                    const dropZone = panelContentElement.querySelector('.project-bin-drop-zone');
+
+                    dropZone.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        dropZone.classList.add('drag-over');
+                    });
+
+                    dropZone.addEventListener('dragleave', () => {
+                        dropZone.classList.remove('drag-over');
+                    });
+
+                    dropZone.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dropZone.classList.remove('drag-over');
+                        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+                        files.forEach(file => window.projectBin.addVideoFile(file));
+                    });
+
                     return;
                 }
 
@@ -79,6 +103,11 @@ class Panels {
                 projectClips.forEach(clip => {
                     const clipItem = document.createElement('li');
                     clipItem.className = `${clip.type}-clip`;
+                    clipItem.draggable = true;
+                    clipItem.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('application/x-rendr-clip', clip.name);
+                        e.dataTransfer.effectAllowed = 'copy';
+                    });
                     if (clip.properties && clip.properties.is_supported === false) {
                         clipItem.classList.add('problem');
                     }
@@ -148,7 +177,11 @@ class Panels {
                     
                     panelContentElement.innerHTML = outHTML + `</tbody></table></div>`;
                 } else {
-                    panelContentElement.innerHTML = `<p>Click the <i class="ti ti-zoom-scan"></i> button on a clip to view its properties.</p>`;
+                    panelContentElement.innerHTML = `
+                        <div class="panel-empty">
+                            <i class="ti ti-zoom-scan panel-icon"></i>
+                            <p>Click the <i class="ti ti-zoom-scan"></i> button on a clip to view its properties.</p>
+                        </div>`;
                 }
                 break;
             case "Clip Preview":
@@ -161,18 +194,36 @@ class Panels {
                         </div>
                     `;
                 } else {
-                    panelContentElement.innerHTML = `<p>Click the <i class="ti ti-video"></i> button on a clip in the project bin to preview it here.</p>`;
+                    panelContentElement.innerHTML = `
+                        <div class="project-bin-drop-zone panel-empty">
+                            <i class="ti ti-video panel-icon"></i>
+                            <p>Click the <i class="ti ti-video"></i> button on a clip in the project bin to preview it here.</p>
+                        </div>
+                    `;
                 }
                 break;
             case "Effects":
-                panelContentElement.innerHTML = `<h2>Coming soon</h2>`;
+                panelContentElement.innerHTML = `
+                    <div class="project-bin-drop-zone panel-empty">
+                        <i class="ti ti-star panel-icon"></i>
+                        <p>Effects coming soon.</p>
+                    </div>
+                `;
                 break;
             case "Preview":
                 panelContentElement.innerHTML = '';
 
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'preview-canvas-wrapper';
+                panelContentElement.appendChild(canvasWrapper);
+
                 const previewCanvas = document.createElement('canvas');
                 previewCanvas.className = 'preview-canvas';
-                panelContentElement.appendChild(previewCanvas);
+                canvasWrapper.appendChild(previewCanvas);
+
+                const fpsOverlay = document.createElement('p');
+                fpsOverlay.className = 'fps';
+                canvasWrapper.appendChild(fpsOverlay);
 
                 const playbackControls = document.createElement('div');
                 playbackControls.className = 'playback-controls';
@@ -188,7 +239,7 @@ class Panels {
                             class="resolution-button"
                         ><i class="ti ti-square-asterisk"></i></button>
                     </div>
-                    <p class="fps">FPS: 0</p>
+                    <p class="timecode mono">00:00:00</p>
                 `;
                 panelContentElement.appendChild(playbackControls);
 
@@ -196,17 +247,17 @@ class Panels {
                 resolutionButton.forEach(button => {
                     button.addEventListener('click', (event) => {
                         const menu = new CtxMenu(button, [
-                                { label: 'Lowest', iconClass: 'ti ti-number-1', onClick: () => window.composer.setDrawQuality(1) },
-                                { label: 'Low', iconClass: 'ti ti-number-2', onClick: () => window.composer.setDrawQuality(3) },
-                                { label: 'Medium', iconClass: 'ti ti-number-3', onClick: () => window.composer.setDrawQuality(5) },
-                                { label: 'High', iconClass: 'ti ti-number-4', onClick: () => window.composer.setDrawQuality(7) },
-                                { label: 'Highest', iconClass: 'ti ti-number-5', onClick: () => window.composer.setDrawQuality(9) },
+                                { label: 'Original Quality', iconClass: 'ti ti-star', onClick: () => window.composer.setDrawQuality(9) },
+                                { label: 'Lowest Quality', iconClass: 'ti ti-number-1', onClick: () => window.composer.setDrawQuality(1) },
+                                { label: 'Low Quality', iconClass: 'ti ti-number-2', onClick: () => window.composer.setDrawQuality(3) },
+                                { label: 'Medium Quality', iconClass: 'ti ti-number-3', onClick: () => window.composer.setDrawQuality(5) },
+                                { label: 'High Quality', iconClass: 'ti ti-number-4', onClick: () => window.composer.setDrawQuality(7) },
                             ],
                         );
                     });
                 });
 
-                const fpsElement = playbackControls.querySelector('.fps');
+                const fpsElement = fpsOverlay;
                 const fpsHookItem = {
                     element: fpsElement,
                     isAlive() {
@@ -217,6 +268,18 @@ class Panels {
                     }
                 };
                 window.composer.addFpsHook(fpsHookItem);
+
+                const timecodeElement = playbackControls.querySelector('.timecode');
+                const timecodeHookItem = {
+                    element: timecodeElement,
+                    isAlive() {
+                        return Boolean(this.element && this.element.isConnected);
+                    },
+                    updateTimecode(timecode) {
+                        this.element.textContent = timecode;
+                    }
+                };
+                window.timelineUI.addTimecodeHook(timecodeHookItem);
 
                 window.composer.attachPreview(previewCanvas);
                 break;
