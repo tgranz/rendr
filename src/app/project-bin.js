@@ -1,4 +1,5 @@
 import ClipMediaInfo from '../backend/clip-media-info.js';
+import Transcoder from '../backend/transcode.js';
 import Modal from '../ui/modal.js';
 
 class ProjectBin {
@@ -38,6 +39,7 @@ class ProjectBin {
             type: 'video',
             name: file.name,
             url: fileURL,
+            status: 'notready',
             file
         });
 
@@ -49,7 +51,50 @@ class ProjectBin {
 
             this.clipMediaInfo.getClipProperties(clip.file || clip).then(properties => {
                 clip.properties = properties;
-                window.panels.reRender('Project Bin');
+                window.panels.reRender('Project Bin')
+
+                // If this was the first clip there will be only one clip in the project bin
+                // Ask to change project profile to match
+                if (this.project.length === 1) {
+                    const modalContent = `<p>Set project settings to match this clip?</p>`;
+                    const modal = new Modal('Action Required', modalContent, [
+                        {
+                            text: 'Yes, change project settings',
+                            variant: 'primary',
+                            action: (activeModal) => {
+                                window.project.setProjectSettings({
+                                    frameRate: properties.fps || window.project.getProjectSettings().frameRate,
+                                    width: properties.width || window.project.getProjectSettings().width,
+                                    height: properties.height || window.project.getProjectSettings().height,
+                                });
+                                clip.status = 'done';
+                                window.panels.reRender('Project Bin');
+                                modal.close();
+                            }
+                        },
+                        {
+                            text: 'No, transcode this video into current settings',
+                            action: async (activeModal) => {
+                                window.transcoder.transcodeClipToProjectSettings(clip.name);
+                                clip.status = 'transcoding';
+                                modal.close();
+                            }
+                        }
+                    ],
+                    { closeOnDarkenerClick: false, showCloseButton: false, closeOnEscape: false  });
+                    modal.open();
+                } else {
+                    // Not first clip, transcode if needed
+                    const projectSettings = window.project.getProjectSettings();
+                    if (projectSettings.frameRate && properties.fps && projectSettings.frameRate !== properties.fps) {
+                        window.transcoder.transcodeClipToProjectSettings(clip.name);
+                        clip.status = 'transcoding';
+                    } else {
+                        clip.status = 'done';
+                        window.panels.reRender('Project Bin');
+                    } 
+                }
+
             }).catch(error => {
                 console.error(`Failed to get media info for ${file.name}:`, error);
             });
@@ -86,6 +131,22 @@ class ProjectBin {
         }
     }
 
+    downloadClip(clipName) {
+        const clip = this.project.find(c => c.name === clipName);
+
+        if (!clip) {
+            console.warn(`Clip not found for download: ${clipName}`);
+            return;
+        }
+
+        const link = document.createElement('a');
+        link.href = clip.url;
+        link.download = clip.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     // Function to call a render of the clip's properties on a clip properties panel
     async renderProperties(clipName) {
         const clip = this.project.find(c => c.name === clipName);
@@ -108,25 +169,6 @@ class ProjectBin {
         const clip = this.project.find(c => c.name === clipName);
 
         window.panels.reRender('Clip Preview', clip || {});
-    }
-
-    viewProblem(clipName) {
-        const clip = this.project.find(c => c.name === clipName);
-
-        if (!clip) {
-            console.warn(`Clip not found for problem view: ${clipName}`);
-            return;
-        }
-
-        // Show modal with problem details
-        const modal = new Modal(`Problem with ${clipName}`,
-            `<p>This clip's audio codec is not supported by most browsers.<br>
-                Though the clip contains audio, Rendr may not be able to play it.<br>
-                If you can't hear it in the clip preview or timeline, you won't hear it in the final render.<br>
-                You can reencode it with FFmpeg using the following command:<br>
-                <i class="mono">ffmpeg -i '${clip.name}' -c:v copy -c:a aac -b:a 192k -movflags +faststart 'reencoded_${clip.name}'</i>
-            </p>`);
-        modal.open();
     }
 
     // Function to build a thumbnail for a video clip given name and offset seconds from start

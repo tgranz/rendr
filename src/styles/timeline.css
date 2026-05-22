@@ -11,7 +11,8 @@
 }
 
 #tracks-list-toolbar {
-    height: 50px;
+    min-height: 50px;
+    max-height: 50px;
     display: flex;
     flex-direction: row;
     align-items: flex-end;
@@ -36,17 +37,18 @@
 #tracks-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
     width: 20%;
     max-width: 200px;
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    padding-bottom: 10px; /* Account for scrollbar on timeline */
 }
 
 .track-item {
     padding: 4px 8px;
     border-radius: var(--radius);
+    margin-bottom: 4px;
 }
 
 .track-item.video-track {
@@ -255,7 +257,7 @@
 #timeline-playbar {
     position: absolute;
     top: 0;
-    bottom: 0;
+    height: 100%;
     left: 0;
     width: 2px;
     background-color: var(--playhead-color);
@@ -266,6 +268,7 @@
 .track-row {
     display: block;
     position: relative;
+    flex: 0 0 auto;
     height: 60px;
     min-width: 100%;
     margin-bottom: 4px;
@@ -302,6 +305,11 @@
     filter: brightness(1.15);
 }
 
+.clip-item.is-selected {
+    outline: 2px solid var(--accent-color, #4a9eff);
+    outline-offset: -2px;
+}
+
 .clip-item .clip-thumbnail {
     width: auto;
     height: 52px;
@@ -336,7 +344,15 @@
     gap: 2px;
 }
 
+.clip-item .clip-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
 .clip-item .clip-actions button {
+    font-size: 0.8em;
     background-color: transparent;
     color: var(--text-main);
     padding: 2px 6px;
@@ -344,6 +360,11 @@
     cursor: pointer;
     font-size: 0.9em;
     transition: background-color 0.2s ease;
+}
+
+.clip-item .clip-name-wrapper i {
+    flex: 0 0 auto;
+    pointer-events: none;
 }
 
 .clip-item .clip-actions button:hover {

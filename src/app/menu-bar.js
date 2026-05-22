@@ -1,5 +1,15 @@
 import CtxMenu from '../ui/ctx-menu.js';
 import openSettings from './settings.js';
+import Modal from '../ui/modal.js';
+
+function about() {
+    const modal = new Modal('About', `
+        <p>Rendr is a free and open-source web-based video editor built to run entirely client-side.</p>
+        <p>There is no backend/server so your files never leave your computer.</p>
+        <p>Rendering and transcoding is powered through a WebAssembly FFmpeg build so it runs entirely in your browser.</p>
+    `);
+    modal.open();
+}
 
 export default function bindCtxMenusToMenuOptions() {
     document.getElementById('shortcut-import').addEventListener('click', (event) => {
@@ -10,6 +20,7 @@ export default function bindCtxMenusToMenuOptions() {
     app.addEventListener('click', (event) => {
         const menu = new CtxMenu(app, [
                 { label: 'Settings', iconClass: 'ti ti-settings', onClick: () => openSettings() },
+                { label: 'About Rendr', iconClass: 'ti ti-info-circle', onClick: () => about() },
             ],
         );
     });
@@ -19,6 +30,7 @@ export default function bindCtxMenusToMenuOptions() {
     file.addEventListener('click', (event) => {
         const menu = new CtxMenu(file, [
                 { label: 'Import Media', iconClass: 'ti ti-plus', onClick: () => window.projectBin.addVideo() },
+                { label: 'Render', iconClass: 'ti ti-video', onClick: () => window.renderer.render() },
             ],
         );
     });
@@ -38,8 +50,13 @@ export default function bindCtxMenusToMenuOptions() {
     const view = document.getElementById('menu-view')
     view.addEventListener('click', (event) => {
         const menu = new CtxMenu(view, [
-                { label: 'Zoom In', iconClass: 'ti ti-zoom-in', onClick: () => window.timelineUI.zoomIn() },
-                { label: 'Zoom Out', iconClass: 'ti ti-zoom-out', onClick: () => window.timelineUI.zoomOut() },
+                { label: 'Zoom In Timeline', iconClass: 'ti ti-zoom-in', onClick: () => window.timelineUI.zoomIn() },
+                { label: 'Zoom Out Timeline', iconClass: 'ti ti-zoom-out', onClick: () => window.timelineUI.zoomOut() },
+                { label: 'Re-render Timeline', iconClass: 'ti ti-refresh', onClick: () => {
+                        window.timelineUI.renderTimeline();
+                        window.setMessage('Timeline re-rendered', 'check', '#00ff00');
+                    }
+                },
             ],
         );
     });

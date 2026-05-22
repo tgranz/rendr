@@ -30,6 +30,9 @@ window.progressError = function(errorString) {
     progressElement.style.setProperty('background', 'var(--bad-color-translucent)', 'important');
 }
 
+// Backward compatible alias for callers that use window.setError.
+window.setError = window.progressError;
+
 window.stopProgress = function() {
     progressElement.style.display = 'none';
     menubarElement.style.display = 'flex';

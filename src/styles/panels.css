@@ -104,6 +104,11 @@ ul.project-bin-list li .clip-name {
     text-overflow: ellipsis;
 }
 
+ul.project-bin-list li .clip-name i {
+    margin-right: 8px;
+    color: var(--tertiary-color);
+}
+
 ul.project-bin-list li .clip-details {
     display: flex;
     flex-direction: column;
@@ -117,6 +122,7 @@ ul.project-bin-list li .clip-actions {
     display: flex;
     flex-direction: row;
     gap: 4px;
+    flex-wrap: wrap;
 }
 
 ul.project-bin-list li .clip-actions button {
@@ -125,7 +131,7 @@ ul.project-bin-list li .clip-actions button {
     padding: 4px;
     border-radius: var(--radius);
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 1em;
     transition: background-color 0.2s ease;
 }
 
@@ -262,4 +268,257 @@ canvas.preview-canvas {
     border-radius: var(--radius);
     margin: 4px;
     margin-right: 0px;
+}
+
+.project-settings .setting-item input {
+    background: none;
+    text-align: right;
+    border: none;
+    padding: 8px;
+}
+
+.project-settings .setting-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px;
+}
+
+.project-settings .setting-item input:focus {
+    outline: none;
+    background-color: var(--background-color-2);
+    border-radius: var(--radius);
+}
+
+.project-settings .setting-item p {
+    font-weight: bold;
+    margin: 0;
+    margin-left: 8px;
+    text-transform: uppercase;
+    font-size: 0.9em;
+    color: var(--text-dark);
+}
+
+.project-settings .settings-critical-area {
+    border: 1px solid var(--secondary-color);
+    padding: 8px;
+    border-radius: var(--radius);
+    margin: 12px;
+}
+
+.settings-note {
+    color: var(--text-dark);
+    font-size: 0.8em;
+    margin: 12px;
+    padding: 4px;
+}
+
+.effects-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+}
+
+.effects-stack-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--radius);
+    background-color: var(--background-color-1);
+}
+
+.effects-stack-label,
+.effects-stack-name,
+.effects-stack-count,
+.effect-stack-empty-parameters,
+.effect-stack-parameter-title {
+    margin: 0;
+}
+
+.effects-stack-label {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    color: var(--text-dark);
+}
+
+.effects-stack-name {
+    font-size: 0.95em;
+    color: var(--text-main);
+    font-weight: bold;
+}
+
+.effects-stack-count {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.effect-stack-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--radius);
+    background-color: var(--background-color-1);
+}
+
+.effect-stack-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.effect-stack-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.effect-stack-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.effect-stack-title .effect-name {
+    margin: 0;
+    font-weight: bold;
+}
+
+.effect-stack-controls {
+    display: flex;
+    gap: 4px;
+}
+
+.effect-stack-controls button {
+    background-color: transparent;
+    color: var(--text-main);
+    padding: 2px 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.effect-stack-controls button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.effect-stack-parameters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.effect-stack-parameter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.effect-stack-parameter-title {
+    font-size: 0.8em;
+    color: var(--text-dark);
+    text-transform: uppercase;
+    min-width: 0;
+}
+
+.effect-stack-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.effect-stack-control input[type="range"] {
+    width: 160px;
+}
+
+.effect-stack-value {
+    min-width: 2.5em;
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.8em;
+}
+
+.effect-stack-empty-parameters {
+    color: var(--text-dark);
+    font-size: 0.85em;
+}
+
+/*<div class="effect-item">
+    <div class="effect-meta">
+        <div class="effect-title">
+            <i class="effect-icon ti ti-star"></i>
+            <p class="effect-name">${effectName}</p>
+        </div>
+        <p class="effect-help">${effects[effectName].help}</p>
+    </div>
+    <div class="effect-actions">
+        <button
+            title="Apply Effect"
+            onClick="window.timelineUI.applyEffectToActiveClip('${effectName}')"
+        ><i class="ti ti-plus"></i></button>
+    </div>
+</div>*/
+
+.effects-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+}
+
+.effect-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    border-radius: var(--radius);
+    background-color: var(--background-color-1);
+}
+
+.effect-item .effect-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.effect-item .effect-title {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.effect-item .effect-name {
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+.effect-item .effect-help {
+    font-size: 0.8em;
+    color: var(--text-dark);
+}
+
+.effect-item .effect-actions button {
+    background-color: transparent;
+    color: var(--text-main);
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+}
+
+.effect-item .effect-actions button:hover {
+    background-color: var(--background-color-2);
 }

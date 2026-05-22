@@ -1,6 +1,7 @@
 import VideoTrack from './video-track.js';
 import AudioTrack from './audio-track.js';
 import CtxMenu from '../../ui/ctx-menu.js';
+import { effects, normalizeEffectParameters } from '../../backend/effects.js';
 
 class TimelineUI {
     constructor() {
@@ -9,6 +10,7 @@ class TimelineUI {
         this.timelineCursor = document.getElementById('timeline-cursor');
         this.timelinePlayhead = document.getElementById('timeline-playhead');
         this.timelinePlaybar = document.getElementById('timeline-playbar');
+        this.timelineRuler = document.getElementById('timeline-ruler');
         this.pixelsPerSecond = 10;
         this.timelineInteractionMode = 'select';
         this.playBackInterval = null;
@@ -22,6 +24,7 @@ class TimelineUI {
         this.playbackStartWallclockMs = 0;
         this.playbackStartSeconds = 0;
         this.timecodeHooks = [];
+        this.activeTimelineClipId = null;
 
         this.handleTimelinePointerMove = event => {
             const rect = this.timelineElement.getBoundingClientRect();
@@ -108,19 +111,29 @@ class TimelineUI {
         this.setPlayPosition(0);
 
         // Move playbar to clicked position when ruler clicked, or when dragged
-        const timelineRuler = document.getElementById('timeline-ruler');
-        timelineRuler.addEventListener('mousemove', event => {
+        if (this.timelineRuler && this.timelinePlayhead?.parentElement !== this.timelineRuler) {
+            this.timelineRuler.appendChild(this.timelinePlayhead);
+        }
+
+        this.timelineRuler.addEventListener('mousemove', event => {
             if (event.buttons === 1) {
-                const rect = timelineRuler.getBoundingClientRect();
+                const rect = this.timelineRuler.getBoundingClientRect();
                 const x = Math.max(0, (event.clientX - rect.left));
                 this.setPlayPosition(x / this.pixelsPerSecond);
             }
         });
-        timelineRuler.addEventListener('click', event => {
-            const rect = timelineRuler.getBoundingClientRect();
+        this.timelineRuler.addEventListener('click', event => {
+            const rect = this.timelineRuler.getBoundingClientRect();
             const x = Math.max(0, (event.clientX - rect.left));
             this.setPlayPosition(x / this.pixelsPerSecond);
         });
+
+        if (typeof ResizeObserver === 'function') {
+            this.timelineResizeObserver = new ResizeObserver(() => {
+                this.updatePlaybarHeight();
+            });
+            this.timelineResizeObserver.observe(this.timelineElement);
+        }
 
         // Init on select mode
         this.setTimelineInteractionMode('select');
@@ -322,6 +335,25 @@ class TimelineUI {
     getSortedTrackClips(track) {
         return [...(track?.sequence || [])]
             .sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0));
+    }
+
+    setActiveTimelineClip(clip) {
+        this.activeTimelineClipId = clip?.id || null;
+    }
+
+    getSelectedTimelineClip() {
+        if (!this.activeTimelineClipId) {
+            return null;
+        }
+
+        for (const track of this.tracks) {
+            const clip = (track.sequence || []).find(trackClip => trackClip.id === this.activeTimelineClipId);
+            if (clip) {
+                return clip;
+            }
+        }
+
+        return null;
     }
 
     getClipNeighbors(track, clipData) {
@@ -566,7 +598,7 @@ class TimelineUI {
             trackLabel.className = 'track-label';
             trackLabel.textContent = track.name;
             trackLabel.addEventListener('click', () => {
-                this.renameTrack(index);
+                this.renameTrack(track.name);
             });
             trackElement.appendChild(trackLabel);
 
@@ -602,7 +634,9 @@ class TimelineUI {
                 const deleteButton = document.createElement('button');
                 deleteButton.innerHTML = '<i class="ti ti-trash"></i>';
                 deleteButton.addEventListener('click', () => {
-                    this.removeTrack(index);
+                    if (confirm(`Are you sure you want to delete "${track.name}"?`)) {
+                        this.removeTrack(index);
+                    }
                 });
                 trackActions.appendChild(deleteButton);
 
@@ -610,10 +644,19 @@ class TimelineUI {
 
             this.tracksListElement.appendChild(trackElement);
         });
+
+        // Scrolling track list or timeline should keep both in sync
+        this.tracksListElement.addEventListener('scroll', () => {
+            this.timelineElement.scrollTop = this.tracksListElement.scrollTop;
+        });
+
+        this.timelineElement.addEventListener('scroll', () => {
+            this.tracksListElement.scrollTop = this.timelineElement.scrollTop;
+        });
     }
 
-    renameTrack(index) {
-        const track = this.tracks[index];
+    renameTrack(name) {
+        const track = this.tracks.find(t => t.name === name);
         const newName = prompt('Enter new track name:', track.name);
         if (newName !== null && newName.trim() !== '') {
             track.name = newName.trim();
@@ -631,9 +674,8 @@ class TimelineUI {
         );
 
         // Render ruler increments
-        const timelineRuler = document.getElementById('timeline-ruler');
-        timelineRuler.querySelectorAll('.ruler-tick').forEach(el => el.remove());
-        timelineRuler.style.width = `${timelineWidthPx}px`;
+        this.timelineRuler.querySelectorAll('.ruler-tick').forEach(el => el.remove());
+        this.timelineRuler.style.width = `${timelineWidthPx}px`;
 
         const totalSeconds = Math.ceil(timelineWidthPx / this.pixelsPerSecond) + 1;
 
@@ -654,7 +696,7 @@ class TimelineUI {
                 ? `${mins}:${String(secs.toFixed(secs % 1 === 0 ? 0 : 2)).padStart(2, '0')}`
                 : `${secs % 1 === 0 ? secs : secs.toFixed(2)}s`;
 
-            timelineRuler.appendChild(tick);
+            this.timelineRuler.appendChild(tick);
         }
 
         // Sort tracks, video first then audio
@@ -708,6 +750,10 @@ class TimelineUI {
                 clipElement.className = 'clip-item';
                 clipElement.dataset.clipId = clip.id;
 
+                if (clip.id === this.activeTimelineClipId) {
+                    clipElement.classList.add('is-selected');
+                }
+
                 if (track.getType() === 'audio') {
                     clipElement.classList.add('audio-clip-item');
                 }
@@ -750,6 +796,14 @@ class TimelineUI {
                             clipNameWrapper.appendChild(linkIcon);
                         }
 
+                        if (clip.effects && clip.effects.length > 0) {
+                            const effectsIcon = document.createElement('i');
+                            effectsIcon.className = 'ti ti-wand';
+                            effectsIcon.style.color = 'var(--green-color)';
+                            effectsIcon.title = 'This clip has effects applied. Click to open effects stack.';
+                            clipNameWrapper.appendChild(effectsIcon);
+                        }
+
                     clipDetails.appendChild(clipNameWrapper);
                     const clipActions = document.createElement('div');
                     clipActions.className = 'clip-actions';
@@ -770,9 +824,32 @@ class TimelineUI {
                 this.makeClipResizable(clipElement, clip, endHandle, clip, track, 'end');
                 this.makeClipDraggable(clipElement, clip, track);
 
+                clipElement.addEventListener('click', event => {
+                    if (event.target instanceof Element && event.target.closest('button, .clip-handle')) {
+                        return;
+                    }
+
+                    this.setActiveTimelineClip(clip);
+                    this.renderTimeline();
+                    window.panels?.reRender('Effects Stack', clip);
+                });
+
                 trackRow.appendChild(clipElement);
             });
         });
+
+        this.updatePlaybarHeight();
+    }
+
+    updatePlaybarHeight() {
+        const trackRows = this.timelineElement.querySelectorAll('.track-row');
+        let contentBottom = this.timelineRuler?.offsetHeight || 0;
+
+        for (const trackRow of trackRows) {
+            contentBottom = Math.max(contentBottom, trackRow.offsetTop + trackRow.offsetHeight);
+        }
+
+        this.timelinePlaybar.style.height = `${contentBottom}px`;
     }
 
     getVideoTracks() {
@@ -937,8 +1014,8 @@ class TimelineUI {
         const hh = Math.floor(totalMins / 60);
         const pad = n => String(n).padStart(2, '0');
         const timecode = hh > 0
-            ? `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff)}`
-            : `${pad(mm)}:${pad(ss)}:${pad(ff)}`;
+            ? `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff.toFixed(0))}`
+            : `${pad(mm)}:${pad(ss)}:${pad(ff.toFixed(0))}`;
 
         this.timecodeHooks = this.timecodeHooks.filter(hookItem => {
             const isAlive = typeof hookItem.isAlive === 'function'
@@ -992,6 +1069,26 @@ class TimelineUI {
         }
 
         return intersections;
+    }
+
+    applyEffectToActiveClip(effectName) {
+        const activeClip = this.getSelectedTimelineClip() || this.getIntersectingClipAtTime(this.getPlayPosition());
+
+        if (!activeClip) {
+            window.setMessage('No active clip selected.', 'alert-triangle', '#ff8800', 4000);
+            return;
+        }
+
+        activeClip.effects = activeClip.effects || [];
+        activeClip.effects.push({ name: effectName, parameters: normalizeEffectParameters(effectName) });
+        this.setActiveTimelineClip(activeClip);
+        if (window.composer) {
+            window.composer.lastRenderedClipId = null;
+            window.composer.lastRenderedFrameIndex = -1;
+        }
+        this.renderTimeline();
+        window.panels?.reRender('Effects Stack', activeClip);
+        window.composer?.drawCurrentFrame();
     }
 
     async startPlayback() {

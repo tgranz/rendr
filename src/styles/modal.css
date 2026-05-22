@@ -100,3 +100,43 @@
 .modal-content::-webkit-scrollbar-thumb:hover {
     background: var(--background-color-4, #444);
 }
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--background-color-3, #333);
+    flex-shrink: 0;
+}
+
+.modal-action-button {
+    border: 1px solid var(--background-color-4, #444);
+    background: var(--background-color-2, #2a2a2a);
+    color: var(--text-color, #ffffff);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 100ms ease, border-color 100ms ease, transform 100ms ease;
+}
+
+.modal-action-button:hover {
+    background: var(--background-color-3, #333);
+    border-color: var(--background-color-5, #555);
+}
+
+.modal-action-button:active {
+    transform: translateY(1px);
+}
+
+.modal-action-button-primary {
+    border-color: #3e8eff;
+    background: #2a72d8;
+}
+
+.modal-action-button-primary:hover {
+    background: #317de9;
+    border-color: #5aa3ff;
+}

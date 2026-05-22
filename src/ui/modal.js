@@ -1,7 +1,9 @@
 class Modal {
-    constructor(title, htmlContent) {
+    constructor(title, htmlContent, buttons = [], options = {}) {
         this.title = title;
         this.htmlContent = htmlContent;
+        this.buttons = Array.isArray(buttons) ? buttons : [];
+        this.options = options;
         this.isOpen = false;
 
         this.createModal();
@@ -25,41 +27,85 @@ class Modal {
         titleElement.className = 'modal-title';
         titleElement.textContent = this.title;
 
-        const closeButton = document.createElement('button');
-        closeButton.className = 'modal-close';
-        closeButton.innerHTML = '<i class="ti ti-x"></i>';
-        closeButton.addEventListener('click', () => this.close());
+        let closeButton;
+        if (this.options.showCloseButton !== false) {
+            closeButton = document.createElement('button');
+            closeButton.className = 'modal-close';
+            closeButton.innerHTML = '<i class="ti ti-x"></i>';
+            closeButton.addEventListener('click', () => this.close());
+        }
 
         header.appendChild(titleElement);
-        header.appendChild(closeButton);
+        if (closeButton) {
+            header.appendChild(closeButton);
+        }
 
         // Create modal content
         const content = document.createElement('div');
         content.className = 'modal-content';
         content.innerHTML = this.htmlContent;
 
+        const footer = this.createFooter();
+
         // Assemble modal
         this.modalContainer.appendChild(header);
         this.modalContainer.appendChild(content);
+        if (footer) {
+            this.modalContainer.appendChild(footer);
+        }
 
         // Assemble and append to body
         this.darkener.appendChild(this.modalContainer);
     }
 
-    attachEventListeners() {
-        // Close on darkener click
-        this.darkener.addEventListener('click', (e) => {
-            if (e.target === this.darkener) {
-                this.close();
+    createFooter() {
+        if (this.buttons.length === 0) {
+            return null;
+        }
+
+        const footer = document.createElement('div');
+        footer.className = 'modal-footer';
+
+        this.buttons.forEach((buttonConfig, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'modal-action-button';
+
+            if (buttonConfig?.variant) {
+                button.classList.add(`modal-action-button-${buttonConfig.variant}`);
             }
+
+            button.textContent = buttonConfig?.text || `Action ${index + 1}`;
+            button.addEventListener('click', () => {
+                if (typeof buttonConfig?.action === 'function') {
+                    buttonConfig.action(this);
+                }
+            });
+
+            footer.appendChild(button);
         });
 
-        // Close on escape key
-        this.escapeHandler = (e) => {
-            if (e.key === 'Escape' && this.isOpen) {
-                this.close();
-            }
-        };
+        return footer;
+    }
+
+    attachEventListeners() {
+        if (this.options.closeOnDarkenerClick !== false) {
+            // Close on darkener click
+            this.darkener.addEventListener('click', (e) => {
+                if (e.target === this.darkener) {
+                    this.close();
+                }
+            });
+        }
+
+        if (this.options.closeOnEscape !== false) {
+            // Close on escape key
+            this.escapeHandler = (e) => {
+                if (e.key === 'Escape' && this.isOpen) {
+                    this.close();
+                }
+            };
+        }
     }
 
     open() {

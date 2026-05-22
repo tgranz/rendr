@@ -29,7 +29,17 @@ header {
 }
 
 button.app-title {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
     font-weight: bolder;
+}
+
+button.app-title img {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
 }
 
 #progress {

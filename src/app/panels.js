@@ -1,4 +1,5 @@
 import CtxMenu from '../ui/ctx-menu.js';
+import { effects } from '../backend/effects.js';
 
 class Panels {
     constructor() {
@@ -16,7 +17,7 @@ class Panels {
 
         // Initial render
         this.renderPanel(this.panel1, this.panel1Selector, "Project Bin");
-        this.renderPanel(this.panel2, this.panel2Selector, "Clip Preview");
+        this.renderPanel(this.panel2, this.panel2Selector, "Project Settings");
         this.renderPanel(this.panel3, this.panel3Selector, "Preview");
     }
 
@@ -27,7 +28,9 @@ class Panels {
             { label: 'Project Bin', iconClass: 'ti ti-layout-grid', onClick: () => callBackFunct(panel, panelSelector, "Project Bin") },
             { label: 'Clip Preview', iconClass: 'ti ti-video', onClick: () => callBackFunct(panel, panelSelector, "Clip Preview") },
             { label: 'Clip Properties', iconClass: 'ti ti-zoom-scan', onClick: () => callBackFunct(panel, panelSelector, "Clip Properties") },
+            { label: 'Project Settings', iconClass: 'ti ti-settings-2', onClick: () => callBackFunct(panel, panelSelector, "Project Settings") },
             { label: 'Effects', iconClass: 'ti ti-star', onClick: () => callBackFunct(panel, panelSelector, "Effects") },
+            { label: 'Effects Stack', iconClass: 'ti ti-wand', onClick: () => callBackFunct(panel, panelSelector, "Effects Stack") },
             { label: 'Preview', iconClass: 'ti ti-player-play', onClick: () => callBackFunct(panel, panelSelector, "Preview") }
         ]);
     }
@@ -46,6 +49,208 @@ class Panels {
         });
     }
 
+    getActiveTimelineClip() {
+        const selectedClip = window.timelineUI?.getSelectedTimelineClip?.();
+        if (selectedClip) {
+            return selectedClip;
+        }
+
+        if (!window.timelineUI || typeof window.timelineUI.getPlayPosition !== 'function') {
+            return null;
+        }
+
+        const playPosition = window.timelineUI.getPlayPosition();
+        return window.timelineUI.getIntersectingClipAtTime(playPosition) || null;
+    }
+
+    renderEffectsStack(panel, panelSelector, clip) {
+        const panelContentElement = panel.querySelector('.panel-content');
+        const currentClip = clip || this.getActiveTimelineClip();
+
+        if (!currentClip) {
+            panelContentElement.innerHTML = `
+                <div class="panel-empty">
+                    <i class="ti ti-wand panel-icon"></i>
+                    <p>No clip is under the playhead. Move the playhead onto a clip to edit its effects.</p>
+                </div>
+            `;
+            return;
+        }
+
+        currentClip.effects = Array.isArray(currentClip.effects) ? currentClip.effects : [];
+
+        if (currentClip.effects.length === 0) {
+            panelContentElement.innerHTML = `
+                <div class="panel-empty">
+                    <i class="ti ti-wand panel-icon"></i>
+                    <p>This clip has no effects yet. Open the Effects panel and add one.</p>
+                </div>
+            `;
+            return;
+        }
+
+        panelContentElement.innerHTML = '';
+
+        const stack = document.createElement('div');
+        stack.className = 'effects-stack';
+
+        const clipHeader = document.createElement('div');
+        clipHeader.className = 'effects-stack-header';
+        clipHeader.innerHTML = `
+            <div>
+                <p class="effects-stack-label">Editing</p>
+                <p class="effects-stack-name">${currentClip.clip?.name || currentClip.name || 'Untitled clip'}</p>
+            </div>
+        `;
+        stack.appendChild(clipHeader);
+
+        currentClip.effects.forEach((effectInstance, effectIndex) => {
+            const definition = effects[effectInstance.name];
+            const item = document.createElement('div');
+            item.className = 'effect-stack-item';
+
+            const meta = document.createElement('div');
+            meta.className = 'effect-stack-meta';
+            meta.innerHTML = `
+                <div class="effect-stack-title-row">
+                    <div class="effect-stack-title">
+                        <i class="effect-icon ti ti-${definition?.icon || 'wand'}"></i>
+                        <p class="effect-name">${effectInstance.name}</p>
+                    </div>
+                    <div class="effect-stack-controls">
+                        <button title="Move up" ${effectIndex === 0 ? 'disabled' : ''} data-effect-action="move-up"><i class="ti ti-arrow-up"></i></button>
+                        <button title="Move down" ${effectIndex === currentClip.effects.length - 1 ? 'disabled' : ''} data-effect-action="move-down"><i class="ti ti-arrow-down"></i></button>
+                        <button title="Remove effect" data-effect-action="remove"><i class="ti ti-trash"></i></button>
+                    </div>
+                </div>
+            `;
+            item.appendChild(meta);
+
+            const parameterList = document.createElement('div');
+            parameterList.className = 'effect-stack-parameters';
+            const parameterDefinitions = definition?.parameters || {};
+
+            Object.entries(parameterDefinitions).forEach(([parameterName, parameterConfig]) => {
+                const parameterRow = document.createElement('label');
+                parameterRow.className = 'effect-stack-parameter';
+
+                const currentValue = effectInstance.parameters?.[parameterName] ?? parameterConfig.default ?? '';
+                const valueId = `effect-${effectIndex}-${parameterName}`;
+
+                let inputMarkup = '';
+                if (parameterConfig.type === 'range') {
+                    const step = parameterConfig.step ?? 1;
+                    inputMarkup = `
+                        <input
+                            id="${valueId}"
+                            type="range"
+                            min="${parameterConfig.min ?? 0}"
+                            max="${parameterConfig.max ?? 100}"
+                            step="${step}"
+                            value="${Number(currentValue) || 0}"
+                        />
+                        <span class="effect-stack-value" data-effect-value></span>
+                    `;
+                } else if (parameterConfig.type === 'color') {
+                    inputMarkup = `
+                        <input
+                            id="${valueId}"
+                            type="color"
+                            value="${String(currentValue)}"
+                        />
+                    `;
+                } else {
+                    inputMarkup = `
+                        <input
+                            id="${valueId}"
+                            type="text"
+                            value="${String(currentValue)}"
+                        />
+                    `;
+                }
+
+                parameterRow.innerHTML = `
+                    <span class="effect-stack-parameter-title">${parameterConfig.title || parameterName}</span>
+                    <div class="effect-stack-control">${inputMarkup}</div>
+                `;
+
+                const input = parameterRow.querySelector('input');
+                const valueDisplay = parameterRow.querySelector('[data-effect-value]');
+
+                const syncValue = () => {
+                    if (parameterConfig.type === 'range') {
+                        effectInstance.parameters = effectInstance.parameters || {};
+                        effectInstance.parameters[parameterName] = Number(input.value);
+                        if (valueDisplay) {
+                            valueDisplay.textContent = String(input.value);
+                        }
+                    } else {
+                        effectInstance.parameters = effectInstance.parameters || {};
+                        effectInstance.parameters[parameterName] = input.value;
+                    }
+
+                    window.composer?.drawCurrentFrame();
+                };
+
+                input.addEventListener('input', syncValue);
+                input.addEventListener('change', syncValue);
+
+                if (valueDisplay) {
+                    valueDisplay.textContent = String(input.value);
+                }
+
+                parameterList.appendChild(parameterRow);
+            });
+
+            if (parameterList.childElementCount === 0) {
+                const emptyParams = document.createElement('p');
+                emptyParams.className = 'effect-stack-empty-parameters';
+                emptyParams.textContent = 'This effect does not expose adjustable parameters.';
+                parameterList.appendChild(emptyParams);
+            }
+
+            item.appendChild(parameterList);
+            stack.appendChild(item);
+        });
+
+        stack.addEventListener('click', (event) => {
+            const button = event.target instanceof Element ? event.target.closest('button[data-effect-action]') : null;
+            if (!button) {
+                return;
+            }
+
+            const effectItem = button.closest('.effect-stack-item');
+            const effectIndex = Array.from(stack.querySelectorAll('.effect-stack-item')).indexOf(effectItem);
+            if (effectIndex < 0) {
+                return;
+            }
+
+            const action = button.dataset.effectAction;
+
+            if (action === 'remove') {
+                currentClip.effects.splice(effectIndex, 1);
+            } else if (action === 'move-up' && effectIndex > 0) {
+                const [effect] = currentClip.effects.splice(effectIndex, 1);
+                currentClip.effects.splice(effectIndex - 1, 0, effect);
+            } else if (action === 'move-down' && effectIndex < currentClip.effects.length - 1) {
+                const [effect] = currentClip.effects.splice(effectIndex, 1);
+                currentClip.effects.splice(effectIndex + 1, 0, effect);
+            } else {
+                return;
+            }
+
+            if (currentClip.effects.length === 0) {
+                delete currentClip.effects;
+            }
+
+            window.timelineUI.renderTimeline();
+            window.composer?.drawCurrentFrame();
+            this.renderEffectsStack(panel, panelSelector, currentClip);
+        });
+
+        panelContentElement.appendChild(stack);
+    }
+
     renderPanel(panel, panelSelector, toRender, object = {}){
         const panelContentElement = panel.querySelector('.panel-content');
         const panelTitleElement = panelSelector.querySelector('.panel-title');
@@ -53,6 +258,8 @@ class Panels {
         if (panelTitleElement) {
             panelTitleElement.textContent = toRender;
         }
+
+        this.setPanelActions(panel, []);
 
         switch(toRender) {
             case "Project Bin":
@@ -108,21 +315,24 @@ class Panels {
                         e.dataTransfer.setData('application/x-rendr-clip', clip.name);
                         e.dataTransfer.effectAllowed = 'copy';
                     });
-                    if (clip.properties && clip.properties.is_supported === false) {
+                    if (clip.properties && clip.properties.problem != 'none') {
                         clipItem.classList.add('problem');
                     }
                     clipItem.innerHTML = `
                         <img src="${clip.thumbnail}" alt="${clip.name} thumbnail" />
                         <div class="clip-details">
-                            <p class="clip-name">${clip.name}</p>
+                            <p class="clip-name">
+                                ${clip.status === 'transcoding' ? '<i class="ti ti-progress" title="Transcoding..."></i>' : 
+                                    clip.status === 'notready' ? '<i class="ti ti-clock" title="Not ready"></i>' : ''}
+                                ${clip.name}
+                            </p>
                             <div class="clip-actions">
-                                ${clip.properties && clip.properties.is_supported === false ?
-                                    `<button
-                                        title="View Problem"
-                                        onClick="window.projectBin.viewProblem('${clip.name}')"
-                                    >
-                                        <i class="ti ti-alert-triangle" style="color: var(--bad-color);"></i>
-                                    </button>` : ''}
+                                <button
+                                    title="Download Clip"
+                                    onClick="window.projectBin.downloadClip('${clip.name}')"
+                                >
+                                    <i class="ti ti-download"></i>
+                                </button>
                                 <button
                                     title="View Properties"
                                     onClick="window.projectBin.renderProperties('${clip.name}')"
@@ -141,12 +351,23 @@ class Panels {
                                 >
                                     <i class="ti ti-trash"></i>
                                 </button>
-                                <button
+
+                                ${(clip.properties && !clip.properties.problem.includes('needs transcoding') && clip.status === 'done') ?
+                                    `<button
                                     title="Add to timeline"
                                     onClick="window.timelineUI.addCombinedClipToTimeline('${clip.name}')"
                                 >
                                     <i class="ti ti-plus"></i>
-                                </button>
+                                </button>` : ''}
+                                
+
+                                ${clip.properties && clip.properties.problem.includes('needs transcoding') ?
+                                    `<button
+                                        title="Transcode"
+                                        onClick="window.transcoder.transcodeClip('${clip.name}')"
+                                    >
+                                        <i class="ti ti-transform"></i>
+                                    </button>` : ''}
                             </div>
                         </div>
                     `;
@@ -204,9 +425,84 @@ class Panels {
                 break;
             case "Effects":
                 panelContentElement.innerHTML = `
-                    <div class="project-bin-drop-zone panel-empty">
-                        <i class="ti ti-star panel-icon"></i>
-                        <p>Effects coming soon.</p>
+                    <div class="effects-panel">
+                        ${Object.keys(effects).map(effectName => `
+                            <div class="effect-item">
+                                <div class="effect-meta">
+                                    <div class="effect-title">
+                                        <i class="effect-icon ti ti-${effects[effectName].icon}"></i>
+                                        <p class="effect-name">${effectName}</p>
+                                    </div>
+                                    <p class="effect-help">${effects[effectName].help}</p>
+                                </div>
+                                <div class="effect-actions">
+                                    <button
+                                        title="Apply Effect"
+                                        onClick="window.timelineUI.applyEffectToActiveClip('${effectName}')"
+                                    ><i class="ti ti-plus"></i></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                break;
+            case "Effects Stack":
+                this.setPanelActions(panel, [
+                    {
+                        iconClass: 'ti ti-refresh',
+                        label: 'Refresh Stack',
+                        onClick: () => this.renderEffectsStack(panel, panelSelector)
+                    }
+                ]);
+
+                this.renderEffectsStack(panel, panelSelector, object);
+                break;
+            case "Project Settings":
+                this.setPanelActions(panel, [
+                    {
+                        iconClass: 'ti ti-device-floppy',
+                        label: 'Save Settings',
+                        onClick: () => window.project.setProjectSettings({
+                            width: parseInt(document.getElementById('video-width').value) || window.project.getProjectSettings().width,
+                            height: parseInt(document.getElementById('video-height').value) || window.project.getProjectSettings().height,
+                            frameRate: parseInt(document.getElementById('frame-rate').value) || window.project.getProjectSettings().frameRate,
+                        })
+                    }
+                ]);
+
+                panelContentElement.innerHTML = `
+                    <div class="project-settings">
+                        <p class="settings-note">Clips added to the project will be transcoded to these settings, and changing these settings after adding clips will require re-transcoding those clips, which may take a long time.</p>
+                        <div class="setting-item">
+                            <p>Preset</p>
+                            <select id="project-preset">
+                                <option value="custom" selected>Custom</option>
+                                <option value="2160p60">4K 60fps</option>
+                                <option value="2160p30">4K 30fps</option>
+                                <option value="1080p60">1080p 60fps</option>
+                                <option value="1080p30">1080p 30fps</option>
+                                <option value="720p30">720p 30fps</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <p>Video Width</p>
+                            <input type="number" id="video-width" value="${window.project.getProjectSettings().width || 1920}" />
+                        </div>
+                        <div class="setting-item">
+                            <p>Video Height</p>
+                            <input type="number" id="video-height" value="${window.project.getProjectSettings().height || 1080}" />
+                        </div>
+                        <div class="setting-item">
+                            <p>Frame Rate</p>
+                            <input type="number" id="frame-rate" value="${window.project.getProjectSettings().frameRate || 30}" />
+                        </div>
+
+                        <div class="setting-item">
+                            <p>Render Format</p>
+                            <select>
+                                <option value="mp4">MP4</option>
+                            </select>
+                        </div>
                     </div>
                 `;
                 break;
@@ -302,15 +598,6 @@ class Panels {
                 didRunARender = true;
             }
         });
-
-        if (!didRunARender) {
-            window.setMessage(
-                `No ${targetPanels} panel open.`,
-                'exclamation-circle',
-                '#ffaa00',
-                5000
-            );
-        }
     }
 }
 

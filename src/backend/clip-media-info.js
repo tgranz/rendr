@@ -35,10 +35,12 @@ class ClipMediaInfo {
         const formattedResp = {
             video_tracks: generalTrack.VideoCount || null,
             audio_tracks: generalTrack.AudioCount || null,
+            width: videoTrack.Width || null,
+            height: videoTrack.Height || null,
             mediaFormat: generalTrack.Format || null,
             duration: formatDuration(generalTrack.Duration),
             fps: generalTrack.FrameRate || null,
-            is_supported: this._isLikelyBrowserSupportedAudioCodec(audioTrack.Format || false)
+            problem: this._isLikelyBrowserSupportedAudioCodec(audioTrack.Format || false) ? 'none' : 'incompatible audio / needs transcoding'
         }
 
         console.log(JSON.stringify(resp, null, 2));
