@@ -15,9 +15,11 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "build": "vite build"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
     "mediainfo.js": "^0.3.7",
     "vite": "^8.0.11"
   }
