@@ -1,236 +1,244 @@
 import ClipMediaInfo from '../backend/clip-media-info.js';
-import Transcoder from '../backend/transcode.js';
 import Modal from '../ui/modal.js';
 
 class ProjectBin {
-    constructor() {
+    constructor(deps = {}) {
         this.project = [];
         this.clipMediaInfo = new ClipMediaInfo();
+
+        // optional dependency injection (fallback to globals)
+        this.panels = deps.panels || window.panels;
+        this.projectSettings = deps.projectSettings || window.project;
+        this.transcoder = deps.transcoder || window.transcoder;
+        this.message = deps.message || window.setMessage;
     }
 
-    // Function to automatically build a file picker and import a video into the project
+    createId() {
+        return crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    }
+
     addVideo() {
-        const uploadElement = document.createElement('input');
-        uploadElement.type = 'file';
-        uploadElement.accept = 'video/*';
-        uploadElement.style.display = 'none';
-        document.body.appendChild(uploadElement);
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'video/*';
+        input.style.display = 'none';
+        document.body.appendChild(input);
 
-        uploadElement.addEventListener('change', () => {
-            const file = uploadElement.files && uploadElement.files[0];
-            if (file) {
-                this.addVideoFile(file);
-            }
-            uploadElement.remove();
+        input.addEventListener('change', () => {
+            const file = input.files?.[0];
+            if (file) this.addVideoFile(file);
+            input.remove();
         });
-        uploadElement.click();
+
+        input.click();
     }
 
-    // Function to add a video file directly (e.g. from drag-and-drop)
     addVideoFile(file) {
-        if (this.project.some(clip => clip.name === file.name)) {
-            alert(`A clip named "${file.name}" already exists in the project. Please rename the file and try again.`);
+        const duplicate = this.project.some(
+            c => c.name === file.name && c.size === file.size
+        );
+
+        if (duplicate) {
+            alert(`"${file.name}" already exists in the project.`);
             return;
         }
 
-        const fileURL = URL.createObjectURL(file);
-
-        this.project.push({
+        const clip = {
+            id: this.createId(),
             type: 'video',
             name: file.name,
-            url: fileURL,
+            file,
+            url: URL.createObjectURL(file),
             status: 'notready',
-            file
-        });
+            thumbnail: null,
+            properties: null
+        };
 
-        this.getThumbnail(file.name, 5).then(thumbnailSrc => {
-            let clip = this.project.find(c => c.name === file.name);
-            if (clip) {
-                clip.thumbnail = thumbnailSrc;
-            }
-
-            this.clipMediaInfo.getClipProperties(clip.file || clip).then(properties => {
-                clip.properties = properties;
-                window.panels.reRender('Project Bin')
-
-                // If this was the first clip there will be only one clip in the project bin
-                // Ask to change project profile to match
-                if (this.project.length === 1) {
-                    const modalContent = `<p>Set project settings to match this clip?</p>`;
-                    const modal = new Modal('Action Required', modalContent, [
-                        {
-                            text: 'Yes, change project settings',
-                            variant: 'primary',
-                            action: (activeModal) => {
-                                window.project.setProjectSettings({
-                                    frameRate: properties.fps || window.project.getProjectSettings().frameRate,
-                                    width: properties.width || window.project.getProjectSettings().width,
-                                    height: properties.height || window.project.getProjectSettings().height,
-                                });
-                                clip.status = 'done';
-                                window.panels.reRender('Project Bin');
-                                modal.close();
-                            }
-                        },
-                        {
-                            text: 'No, transcode this video into current settings',
-                            action: async (activeModal) => {
-                                window.transcoder.transcodeClipToProjectSettings(clip.name);
-                                clip.status = 'transcoding';
-                                modal.close();
-                            }
-                        }
-                    ],
-                    { closeOnDarkenerClick: false, showCloseButton: false, closeOnEscape: false  });
-                    modal.open();
-                } else {
-                    // Not first clip, transcode if needed
-                    const projectSettings = window.project.getProjectSettings();
-                    if (projectSettings.frameRate && properties.fps && projectSettings.frameRate !== properties.fps) {
-                        window.transcoder.transcodeClipToProjectSettings(clip.name);
-                        clip.status = 'transcoding';
-                    } else {
-                        clip.status = 'done';
-                        window.panels.reRender('Project Bin');
-                    } 
-                }
-
-            }).catch(error => {
-                console.error(`Failed to get media info for ${file.name}:`, error);
-            });
-        }).catch(error => {
-            console.error(`Failed to generate thumbnail for ${file.name}:`, error);
-            window.panels.reRender('Project Bin');
-        });
+        this.project.push(clip);
+        this.buildThumbnail(clip.id, 5);
     }
 
-    // Function to retrieve the list of clips in the project
+    async buildThumbnail(id, offsetSeconds = 0) {
+        const clip = this.project.find(c => c.id === id);
+        if (!clip) return;
+
+        try {
+            clip.thumbnail = await this.getThumbnail(clip.url, offsetSeconds);
+
+            const props = await this.clipMediaInfo.getClipProperties(clip.file);
+            const latest = this.project.find(c => c.id === id);
+            if (!latest) return;
+
+            latest.properties = props;
+
+            this.panels.reRender('Project Bin');
+
+            if (this.project.length === 1) {
+                this.promptInitialProjectSettings(latest);
+            } else {
+                this.handleCompatibility(latest);
+            }
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    promptInitialProjectSettings(clip) {
+        const modal = new Modal(
+            'Action Required',
+            `<p>Set project settings to match this clip?</p>`,
+            [
+                {
+                    text: 'Yes',
+                    variant: 'primary',
+                    action: () => {
+                        const settings = this.projectSettings.getProjectSettings();
+
+                        this.projectSettings.setProjectSettings({
+                            frameRate: clip.properties?.fps || settings.frameRate,
+                            width: clip.properties?.width || settings.width,
+                            height: clip.properties?.height || settings.height,
+                        });
+
+                        clip.status = 'done';
+                        this.panels.reRender('Project Bin');
+                        modal.close();
+                    }
+                },
+                {
+                    text: 'Transcode to current settings',
+                    action: () => {
+                        this.transcoder.transcodeClipToProjectSettings(clip.name);
+                        clip.status = 'transcoding';
+                        modal.close();
+                    }
+                }
+            ],
+            { closeOnDarkenerClick: false, showCloseButton: false, closeOnEscape: false }
+        );
+
+        modal.open();
+    }
+
+    handleCompatibility(clip) {
+        const settings = this.projectSettings.getProjectSettings();
+
+        if (settings.frameRate && clip.properties?.fps &&
+            settings.frameRate !== clip.properties.fps) {
+
+            this.transcoder.transcodeClipToProjectSettings(clip.name);
+            clip.status = 'transcoding';
+        } else {
+            clip.status = 'done';
+        }
+
+        this.panels.reRender('Project Bin');
+    }
+
     getClips() {
         return this.project;
     }
 
-    // Function to remove a clip from the project by name
-    removeClip(clipName) {
-        // Confirm action
-        if (!confirm(`Are you sure you want to remove the clip "${clipName}" from the project? This action cannot be undone.`)) {
-            return;
-        }
+    removeClip(id) {
+        const idx = this.project.findIndex(c => c.id === id);
+        if (idx === -1) return;
 
-        const clipIndex = this.project.findIndex(c => c.name === clipName);
-        if (clipIndex !== -1) {
-            const clip = this.project[clipIndex];
-            if (clip.url) {
-                URL.revokeObjectURL(clip.url);
-            }
-            this.project.splice(clipIndex, 1);
-            window.panels.reRender('Project Bin');
-            window.panels.reRender('Clip Preview');
-            window.panels.reRender('Clip Properties');
-        } else {
-            console.warn(`Clip not found for removal: ${clipName}`);
-        }
+        const clip = this.project[idx];
+
+        if (!confirm(`Remove "${clip.name}"?`)) return;
+
+        URL.revokeObjectURL(clip.url);
+        this.project.splice(idx, 1);
+
+        this.panels.reRender('Project Bin');
+        this.panels.reRender('Clip Preview');
+        this.panels.reRender('Clip Properties');
     }
 
-    downloadClip(clipName) {
-        const clip = this.project.find(c => c.name === clipName);
+    downloadClip(id) {
+        const clip = this.project.find(c => c.id === id);
+        if (!clip) return;
 
-        if (!clip) {
-            console.warn(`Clip not found for download: ${clipName}`);
-            return;
-        }
-
-        const link = document.createElement('a');
-        link.href = clip.url;
-        link.download = clip.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const a = document.createElement('a');
+        a.href = clip.url;
+        a.download = clip.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
     }
 
-    // Function to call a render of the clip's properties on a clip properties panel
-    async renderProperties(clipName) {
-        const clip = this.project.find(c => c.name === clipName);
-        if (!clip) {
-            console.warn(`Clip not found for properties: ${clipName}`);
-            return;
-        }
+    renderProperties(id) {
+        const clip = this.project.find(c => c.id === id);
+        if (!clip) return;
 
         try {
-            window.panels.reRender('Clip Properties', clip || {});
-        } catch (error) {
-            console.error(`Failed to load clip properties for ${clipName}:`, error);
-            if (typeof window.setMessage === 'function') {
-                window.setMessage(`Failed to load properties for ${clipName}`, 'alert-triangle', '#c00000', 5000);
-            }
+            this.panels.reRender('Clip Properties', clip);
+        } catch (err) {
+            console.error(err);
+            this.message?.('Failed to load properties', 'alert-triangle', '#c00000', 5000);
         }
     }
 
-    renderPreview(clipName) {
-        const clip = this.project.find(c => c.name === clipName);
-
-        window.panels.reRender('Clip Preview', clip || {});
+    renderPreview(id) {
+        const clip = this.project.find(c => c.id === id);
+        this.panels.reRender('Clip Preview', clip || {});
     }
 
-    // Function to build a thumbnail for a video clip given name and offset seconds from start
-    async getThumbnail(clipName, offsetSeconds = 0) {
-        const clip = this.project.find(c => c.name === clipName);
-        if (!clip) {
-            throw new Error(`Clip not found: ${clipName}`);
-        }
-
+    getThumbnail(url, offsetSeconds = 0) {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
             video.preload = 'metadata';
             video.muted = true;
-            video.src = clip.url;
+            video.src = url;
+
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(new Error('Thumbnail timeout'));
+            }, 10000);
 
             const cleanup = () => {
+                clearTimeout(timeout);
                 video.removeAttribute('src');
                 video.load();
+                video.onseeked = null;
+                video.onerror = null;
             };
 
-            const onError = () => {
+            video.onerror = () => {
                 cleanup();
-                reject(new Error(`Failed to build thumbnail for clip: ${clipName}`));
+                reject(new Error('Thumbnail load error'));
             };
 
-            video.addEventListener('error', onError, { once: true });
+            video.onloadedmetadata = () => {
+                const duration = video.duration || 0;
+                const target = Math.min(Math.max(offsetSeconds, 0), duration - 0.05);
 
-            video.addEventListener('loadedmetadata', () => {
-                const safeOffset = Number.isFinite(offsetSeconds) ? Math.max(0, offsetSeconds) : 0;
-                const maxSeekTime = Math.max(0, video.duration - 0.05);
-                const targetTime = Math.min(safeOffset, maxSeekTime);
-
-                video.addEventListener('seeked', () => {
+                video.onseeked = () => {
                     try {
                         const canvas = document.createElement('canvas');
                         canvas.width = video.videoWidth;
                         canvas.height = video.videoHeight;
 
-                        const context = canvas.getContext('2d');
-                        if (!context) {
-                            cleanup();
-                            reject(new Error('Failed to create canvas context for thumbnail.'));
-                            return;
-                        }
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) throw new Error('No canvas context');
 
-                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        const thumbnailSrc = canvas.toDataURL('image/jpeg', 0.9);
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        const img = canvas.toDataURL('image/jpeg', 0.9);
                         cleanup();
-                        resolve(thumbnailSrc);
-                    } catch (error) {
+                        resolve(img);
+                    } catch (e) {
                         cleanup();
-                        reject(error);
+                        reject(e);
                     }
-                }, { once: true });
+                };
 
-                video.currentTime = targetTime;
-            }, { once: true });
+                video.currentTime = target;
+            };
         });
-
     }
 }
-
 
 window.ProjectBin = ProjectBin;
 export default ProjectBin;
